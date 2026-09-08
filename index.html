@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>NEO OS</title>
+  <style>html,body{width:100%;height:100%;margin:0;background:#050505;color:#fff;font:16px Arial,sans-serif}body{display:grid;place-items:center}.status{text-align:center}</style>
+</head>
+<body>
+  <main class="status" id="status">Loading NEO OS…</main>
+  <script>
+  (function () {
+    "use strict";
+    var hosts = [location.hostname, "fastly.jsdelivr.net", "cdn.jsdelivr.net", "gcore.jsdelivr.net", "quantil.jsdelivr.net"];
+    var seen = Object.create(null);
+    var roots = hosts.filter(function (host) {
+      if (!/^(?:fastly|cdn|gcore|quantil)\.jsdelivr\.net$/i.test(host) || seen[host]) return false;
+      seen[host] = true;
+      return true;
+    }).map(function (host) { return "https://" + host + "/gh/unblockedgames99x-code/neo-os-core-cdn@main/"; });
+    var status = document.getElementById("status");
+
+    function install(source, root) {
+      var html = String(source || "").replace(/<meta\b[^>]*http-equiv=["']Content-Security-Policy["'][^>]*>/gi, "");
+      var injection = '<base href="' + root.replace(/&/g, "&amp;").replace(/"/g, "&quot;") + '">' +
+        '<meta name="neo-runner" content="github-jsdelivr">';
+      html = /<head(?:\s[^>]*)?>/i.test(html)
+        ? html.replace(/<head(?:\s[^>]*)?>/i, function (head) { return head + injection; })
+        : injection + html;
+      document.open();
+      document.write(html);
+      document.close();
+    }
+
+    function tryRoot(index) {
+      if (index >= roots.length) {
+        status.textContent = "NEO OS could not load. Refresh to try again.";
+        return;
+      }
+      fetch(roots[index] + "index.html", { cache: "no-store", credentials: "omit" })
+        .then(function (response) {
+          if (!response.ok) throw new Error("CDN response " + response.status);
+          return response.text();
+        })
+        .then(function (html) { install(html, roots[index]); })
+        .catch(function () { tryRoot(index + 1); });
+    }
+    tryRoot(0);
+  })();
+  </script>
+</body>
+</html>
