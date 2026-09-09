@@ -3,7 +3,7 @@
   <script><![CDATA[
     window.addEventListener('load', function () {
       var host = document.getElementById('host');
-      fetch(new URL('index.html?build=github-shards-v2', location.href).href, { cache: 'no-store', credentials: 'omit' })
+      fetch(new URL('index.html?build=desktop-shortcuts-v1', location.href).href, { cache: 'no-store', credentials: 'omit' })
         .then(function (response) {
           if (!response.ok) throw new Error('Launcher response ' + response.status);
           return response.text();
