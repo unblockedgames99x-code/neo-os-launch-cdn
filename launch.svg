@@ -37,7 +37,7 @@
         seen[hostname] = true;
         return true;
       }).map(function (hostname) {
-        return 'https://' + hostname + '/gh/unblockedgames99x-code/neo-os-core-cdn@d247d9055a6ecb69b1e00b3506c10f43635b921e/';
+        return 'https://' + hostname + '/gh/unblockedgames99x-code/neo-os-core-cdn@ff851da540cc553ce71f33de038a431b4ab7cc2e/';
       });
       var frame = document.createElementNS('http://www.w3.org/1999/xhtml', 'iframe');
       var loading = document.getElementById('neo-launch-status');
