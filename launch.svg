@@ -36,9 +36,7 @@
         if (!/^(?:fastly|cdn|gcore|quantil)\.jsdelivr\.net$/i.test(hostname) || seen[hostname]) return false;
         seen[hostname] = true;
         return true;
-      }).map(function (hostname) {
-        return 'https://' + hostname + '/gh/unblockedgames99x-code/neo-os-core-cdn@ff851da540cc553ce71f33de038a431b4ab7cc2e/';
-      });
+      }).map(function (hostname) { return 'https://' + hostname + '/gh/unblockedgames99x-code/neo-os-core-cdn@main/'; });
       var frame = document.createElementNS('http://www.w3.org/1999/xhtml', 'iframe');
       var loading = document.getElementById('neo-launch-status');
       desktopFrame = frame;
@@ -47,10 +45,6 @@
       frame.setAttribute('allow', 'autoplay; picture-in-picture; clipboard-read; clipboard-write; fullscreen; gamepad; display-capture');
       frame.setAttribute('allowfullscreen', 'true');
       frame.setAttribute('style', 'position:fixed;inset:0;width:100%;height:100%;border:0;background:#050505;visibility:hidden');
-      frame.addEventListener('load', function () {
-        frame.setAttribute('style', 'position:fixed;inset:0;width:100%;height:100%;border:0;background:#050505;visibility:visible');
-        if (loading) loading.remove();
-      }, { once: true });
       host.appendChild(frame);
 
       function prepare(source, root) {
@@ -72,7 +66,13 @@
             if (!response.ok) throw new Error('Core response ' + response.status);
             return response.text();
           })
-          .then(function (source) { frame.setAttribute('srcdoc', prepare(source, roots[index])); })
+          .then(function (source) {
+            frame.addEventListener('load', function () {
+              frame.setAttribute('style', 'position:fixed;inset:0;width:100%;height:100%;border:0;background:#050505;visibility:visible');
+              if (loading) loading.remove();
+            }, { once: true });
+            frame.setAttribute('srcdoc', prepare(source, roots[index]));
+          })
           .catch(function () { tryRoot(index + 1); });
       }
       tryRoot(0);
