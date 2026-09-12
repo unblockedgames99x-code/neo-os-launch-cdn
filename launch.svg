@@ -4,6 +4,32 @@
   <script><![CDATA[
     var desktopFrame = null;
 
+    function waitUntilActive(registration) {
+      var worker = registration.active || registration.waiting || registration.installing;
+      if (!worker || worker.state === 'activated') return Promise.resolve();
+      return new Promise(function (resolve) {
+        var timer = setTimeout(resolve, 8000);
+        worker.addEventListener('statechange', function changed() {
+          if (worker.state !== 'activated') return;
+          clearTimeout(timer);
+          worker.removeEventListener('statechange', changed);
+          resolve();
+        });
+      });
+    }
+
+    function waitUntilControlled() {
+      if (navigator.serviceWorker.controller) return Promise.resolve();
+      return new Promise(function (resolve) {
+        var timer = setTimeout(resolve, 2000);
+        navigator.serviceWorker.addEventListener('controllerchange', function changed() {
+          clearTimeout(timer);
+          navigator.serviceWorker.removeEventListener('controllerchange', changed);
+          resolve();
+        });
+      });
+    }
+
     function applyTabAppearance(appearance) {
       if (!appearance || typeof appearance.title !== 'string' || typeof appearance.icon !== 'string') return;
       var title = appearance.title.trim().slice(0, 80) || 'NEO OS';
@@ -36,7 +62,7 @@
         if (!/^(?:fastly|cdn|gcore|quantil)\.jsdelivr\.net$/i.test(hostname) || seen[hostname]) return false;
         seen[hostname] = true;
         return true;
-      }).map(function (hostname) { return 'https://' + hostname + '/gh/unblockedgames99x-code/neo-os-core-cdn@deead3e340a62c741429bb333112f3e922554777/'; });
+      }).map(function (hostname) { return 'https://' + hostname + '/gh/unblockedgames99x-code/neo-os-core-cdn@9c2d100f35949e76c90788a67557e14a6e2ed3f5/'; });
       var frame = document.createElementNS('http://www.w3.org/1999/xhtml', 'iframe');
       var loading = document.getElementById('neo-launch-status');
       desktopFrame = frame;
@@ -75,7 +101,17 @@
           })
           .catch(function () { tryRoot(index + 1); });
       }
-      tryRoot(0);
+      function startDesktop() { tryRoot(0); }
+      if (!('serviceWorker' in navigator)) {
+        startDesktop();
+        return;
+      }
+      var workerUrl = new URL('launcher-sw.js?v=20260912-resource-proxy-v1', location.href).href;
+      var workerScope = new URL('./', location.href).pathname;
+      navigator.serviceWorker.register(workerUrl, { scope: workerScope })
+        .then(waitUntilActive)
+        .then(waitUntilControlled)
+        .then(startDesktop, startDesktop);
     });
   ]]></script>
   <foreignObject width="100%" height="100%">
