@@ -62,7 +62,7 @@
         if (!/^(?:fastly|cdn|gcore|quantil)\.jsdelivr\.net$/i.test(hostname) || seen[hostname]) return false;
         seen[hostname] = true;
         return true;
-      }).map(function (hostname) { return 'https://' + hostname + '/gh/unblockedgames99x-code/neo-os-core-cdn@5832f7ba8a60dbea8fcd8e09936c49bb58dff05e/'; });
+      }).map(function (hostname) { return 'https://' + hostname + '/gh/unblockedgames99x-code/neo-os-core-cdn@379b5de5af6f08659c4ede43dcf1d790f2cb242c/'; });
       var frame = document.createElementNS('http://www.w3.org/1999/xhtml', 'iframe');
       var loading = document.getElementById('neo-launch-status');
       desktopFrame = frame;
