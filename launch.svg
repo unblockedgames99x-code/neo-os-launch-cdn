@@ -62,7 +62,7 @@
         if (!/^(?:fastly|cdn|gcore|quantil)\.jsdelivr\.net$/i.test(hostname) || seen[hostname]) return false;
         seen[hostname] = true;
         return true;
-      }).map(function (hostname) { return 'https://' + hostname + '/gh/unblockedgames99x-code/neo-os-core-cdn@0532f9b7f80c8c2693d055a7d4eca42a5cb6de9d/'; });
+      }).map(function (hostname) { return 'https://' + hostname + '/gh/unblockedgames99x-code/neo-os-core-cdn@d0e0ddc961e2c714516bf87d0636833a16512cd8/'; });
       var frame = document.createElementNS('http://www.w3.org/1999/xhtml', 'iframe');
       var loading = document.getElementById('neo-launch-status');
       desktopFrame = frame;
@@ -106,7 +106,7 @@
         startDesktop();
         return;
       }
-      var workerUrl = new URL('launcher-sw.js?v=20260918-proxy-only-v1', location.href).href;
+      var workerUrl = new URL('launcher-sw.js?v=20260919-scholarnook-v1', location.href).href;
       var workerScope = new URL('./', location.href).pathname;
       navigator.serviceWorker.register(workerUrl, { scope: workerScope })
         .then(waitUntilActive)
