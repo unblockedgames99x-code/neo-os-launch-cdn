@@ -7,10 +7,16 @@
       var source = 'https://s3.amazonaws.com/scholarnook/index.html';
       var sourceRoot = 'https://s3.amazonaws.com/scholarnook/';
 
-      function prepareSource(html) {
-        // Preserve the S3 build's asset paths when its shell runs in srcdoc.
-        var prepared = String(html).replace('<base href="./">', '<base href="' + sourceRoot + '">');
-        return prepared.replace('(function () {', '(function () { var location = new URL("' + source + '");');
+      function prepareSource(html, pageUrl) {
+        // Keep static assets on S3 while related app windows share the shell's origin.
+        var prepared = String(html).replace(/<base\b[^>]*>/i, '<base href="' + sourceRoot + '">');
+        prepared = prepared.replace('(function () {', '(function () { var location = new URL("' + pageUrl + '");');
+        if (pageUrl === source) {
+          // The game resolver needs a real URL base; about:srcdoc has a null origin.
+          prepared = prepared.replace(/return new URL\(([^,]+),location\[[^\]]+\]\)\['href'\]/,
+            'return new URL($1,"' + source + '")["href"]');
+        }
+        return prepared;
       }
 
       function setAppearance(doc, title, iconHref) {
@@ -42,6 +48,37 @@
         frame.addEventListener('load', function () { observer.disconnect(); }, { once: true });
       }
 
+      function bridgeModules(shellFrame) {
+        var shell;
+        try { shell = shellFrame.contentDocument; } catch (error) { return; }
+        if (!shell || !shell.documentElement) return;
+        var handled = new WeakMap();
+        function bridge(frame) {
+          var path = frame.getAttribute('src');
+          if (!path) return;
+          var url;
+          try { url = new URL(path, sourceRoot).href; } catch (error) { return; }
+          if (url.indexOf(sourceRoot + 'modules/') !== 0 || handled.get(frame) === url) return;
+          handled.set(frame, url);
+          frame.removeAttribute('src');
+          fetch(url, { cache: 'no-store', credentials: 'omit' })
+            .then(function (response) {
+              if (!response.ok) throw new Error('Module response ' + response.status);
+              return response.text();
+            })
+            .then(function (html) {
+              if (frame.isConnected) frame.setAttribute('srcdoc', prepareSource(html, url));
+            })
+            .catch(function () { if (frame.isConnected) frame.setAttribute('src', url); });
+        }
+        function scan() {
+          shell.querySelectorAll('iframe[src]').forEach(bridge);
+        }
+        new MutationObserver(scan).observe(shell.documentElement,
+          { childList: true, attributes: true, attributeFilter: ['src'], subtree: true });
+        scan();
+      }
+
       function createFrame(doc) {
         var frame = doc.createElementNS('http://www.w3.org/1999/xhtml', 'iframe');
         frame.setAttribute('title', 'SerumOS');
@@ -54,13 +91,16 @@
       }
 
       function loadFrame(frame, doc) {
-        frame.addEventListener('load', function () { mirrorAppearance(frame, doc); });
+        frame.addEventListener('load', function () {
+          mirrorAppearance(frame, doc);
+          bridgeModules(frame);
+        });
         fetch(source, { cache: 'no-store', credentials: 'omit' })
           .then(function (response) {
             if (!response.ok) throw new Error('Source response ' + response.status);
             return response.text();
           })
-          .then(function (html) { frame.setAttribute('srcdoc', prepareSource(html)); })
+          .then(function (html) { frame.setAttribute('srcdoc', prepareSource(html, source)); })
           .catch(function () {
             // Keep the OS available if S3 stops allowing the CORS fetch.
             frame.setAttribute('src', source);
