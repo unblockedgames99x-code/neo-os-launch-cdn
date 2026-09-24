@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
+  <title>SerumOS Launcher</title>
+  <script><![CDATA[
+    (function () {
+      'use strict';
+      var source = 'https://s3.amazonaws.com/scholarnook/index.html';
+
+      function createFrame(doc) {
+        var frame = doc.createElementNS('http://www.w3.org/1999/xhtml', 'iframe');
+        frame.setAttribute('src', source);
+        frame.setAttribute('title', 'SerumOS');
+        // These sandbox permissions deliberately exclude popups and top navigation.
+        frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-pointer-lock');
+        frame.setAttribute('allow', 'autoplay; clipboard-read; clipboard-write; fullscreen; gamepad');
+        frame.setAttribute('allowfullscreen', 'true');
+        frame.setAttribute('style', 'display:block;position:fixed;inset:0;width:100%;height:100%;border:0;background:#0a0a0c');
+        return frame;
+      }
+
+      function setStatus(message) {
+        document.getElementById('status').textContent = message;
+      }
+
+      function openBlank() {
+        var popup = window.open('about:blank', '_blank');
+        if (!popup) {
+          setStatus('Allow this launcher to open a tab, then try again.');
+          return;
+        }
+        popup.document.title = 'SerumOS';
+        popup.document.documentElement.style.cssText = 'width:100%;height:100%;margin:0;background:#0a0a0c';
+        popup.document.body.style.cssText = 'width:100%;height:100%;margin:0;overflow:hidden;background:#0a0a0c';
+        popup.document.body.appendChild(createFrame(popup.document));
+        popup.focus();
+      }
+
+      function openFull() {
+        var host = document.getElementById('host');
+        var launcher = document.getElementById('launcher');
+        var frame = createFrame(document);
+        launcher.style.display = 'none';
+        host.appendChild(frame);
+        var request = frame.requestFullscreen || frame.webkitRequestFullscreen;
+        if (request) Promise.resolve(request.call(frame)).catch(function () {});
+        setTimeout(function () {
+          var blocked = false;
+          try {
+            blocked = !frame.contentWindow || frame.contentWindow.location.href === 'about:blank';
+          } catch (error) {
+            return;
+          }
+          if (!blocked) return;
+          if (document.fullscreenElement) document.exitFullscreen().catch(function () {});
+          frame.remove();
+          launcher.style.display = '';
+          setStatus('This browser blocked the embedded S3 page. Open this link in Chrome.');
+        }, 4000);
+      }
+
+      window.addEventListener('load', function () {
+        document.getElementById('blank').addEventListener('click', openBlank);
+        document.getElementById('full').addEventListener('click', openFull);
+      });
+    }());
+  ]]></script>
+  <foreignObject width="100%" height="100%">
+    <div xmlns="http://www.w3.org/1999/xhtml" id="host" style="position:fixed;inset:0;display:grid;place-items:center;background:radial-gradient(circle at 50% 0%,#48291f,#0a0a0c 55%);color:#ededf0;font-family:system-ui,sans-serif">
+      <div id="launcher" style="box-sizing:border-box;width:min(440px,calc(100% - 32px));padding:32px;border:1px solid #ffffff21;border-radius:20px;background:#15151ad9;box-shadow:0 24px 70px #0009;text-align:center">
+        <h1 style="margin:0 0 8px;font-size:38px;letter-spacing:-.04em">SerumOS</h1>
+        <p style="color:#b9b9c2">Choose how to launch.</p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:24px">
+          <button id="blank" type="button" style="padding:13px 17px;border:0;border-radius:10px;background:#ff8453;color:#18100d;font:700 14px system-ui;cursor:pointer">Open in about:blank</button>
+          <button id="full" type="button" style="padding:13px 17px;border:0;border-radius:10px;background:#303038;color:#fff;font:700 14px system-ui;cursor:pointer">Full screen</button>
+        </div>
+        <p id="status" role="status" style="min-height:1.5em;margin:18px 0 0;color:#b9b9c2;font-size:13px" />
+      </div>
+    </div>
+  </foreignObject>
+</svg>
