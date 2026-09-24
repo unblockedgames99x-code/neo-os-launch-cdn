@@ -1,14 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%">
-  <title>SerumOS Launcher</title>
+  <title id="serum-launch-title">SerumOS Launcher</title>
   <script><![CDATA[
     (function () {
       'use strict';
       var source = 'https://s3.amazonaws.com/scholarnook/index.html';
+      var sourceRoot = 'https://s3.amazonaws.com/scholarnook/';
+
+      function prepareSource(html) {
+        // Preserve the S3 build's asset paths when its shell runs in srcdoc.
+        var prepared = String(html).replace('<base href="./">', '<base href="' + sourceRoot + '">');
+        return prepared.replace('(function () {', '(function () { var location = new URL("' + source + '");');
+      }
+
+      function setAppearance(doc, title, iconHref) {
+        var label = String(title || 'SerumOS').trim().slice(0, 100) || 'SerumOS';
+        doc.title = label;
+        var svgTitle = doc.getElementById('serum-launch-title');
+        if (svgTitle) svgTitle.textContent = label;
+        var icon = doc.getElementById('serum-launch-icon');
+        if (!icon) {
+          icon = doc.createElementNS('http://www.w3.org/1999/xhtml', 'link');
+          icon.setAttribute('id', 'serum-launch-icon');
+          icon.setAttribute('rel', 'icon');
+          (doc.head || doc.documentElement).appendChild(icon);
+        }
+        icon.setAttribute('href', iconHref || sourceRoot + 'favicon.ico');
+      }
+
+      function mirrorAppearance(frame, doc) {
+        var inner;
+        try { inner = frame.contentDocument; } catch (error) { return; }
+        if (!inner || !inner.head) return;
+        var sync = function () {
+          var icon = inner.querySelector('link[rel~="icon"]');
+          setAppearance(doc, inner.title, icon && icon.href);
+        };
+        var observer = new MutationObserver(sync);
+        observer.observe(inner.head, { childList: true, attributes: true, characterData: true, subtree: true });
+        sync();
+        frame.addEventListener('load', function () { observer.disconnect(); }, { once: true });
+      }
 
       function createFrame(doc) {
         var frame = doc.createElementNS('http://www.w3.org/1999/xhtml', 'iframe');
-        frame.setAttribute('src', source);
         frame.setAttribute('title', 'SerumOS');
         // These sandbox permissions deliberately exclude popups and top navigation.
         frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-downloads allow-modals allow-pointer-lock');
@@ -16,6 +51,21 @@
         frame.setAttribute('allowfullscreen', 'true');
         frame.setAttribute('style', 'display:block;position:fixed;inset:0;width:100%;height:100%;border:0;background:#0a0a0c');
         return frame;
+      }
+
+      function loadFrame(frame, doc) {
+        frame.addEventListener('load', function () { mirrorAppearance(frame, doc); });
+        fetch(source, { cache: 'no-store', credentials: 'omit' })
+          .then(function (response) {
+            if (!response.ok) throw new Error('Source response ' + response.status);
+            return response.text();
+          })
+          .then(function (html) { frame.setAttribute('srcdoc', prepareSource(html)); })
+          .catch(function () {
+            // Keep the OS available if S3 stops allowing the CORS fetch.
+            frame.setAttribute('src', source);
+            if (doc === document) setStatus('SerumOS loaded directly; tab cloaks need S3 cross-origin access.');
+          });
       }
 
       function setStatus(message) {
@@ -31,7 +81,9 @@
         popup.document.title = 'SerumOS';
         popup.document.documentElement.style.cssText = 'width:100%;height:100%;margin:0;background:#0a0a0c';
         popup.document.body.style.cssText = 'width:100%;height:100%;margin:0;overflow:hidden;background:#0a0a0c';
-        popup.document.body.appendChild(createFrame(popup.document));
+        var frame = createFrame(popup.document);
+        popup.document.body.appendChild(frame);
+        loadFrame(frame, popup.document);
         popup.focus();
       }
 
@@ -41,6 +93,7 @@
         var frame = createFrame(document);
         launcher.style.display = 'none';
         host.appendChild(frame);
+        loadFrame(frame, document);
         var request = frame.requestFullscreen || frame.webkitRequestFullscreen;
         if (request) Promise.resolve(request.call(frame)).catch(function () {});
         setTimeout(function () {
