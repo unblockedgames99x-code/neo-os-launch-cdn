@@ -10,6 +10,8 @@
       function prepareSource(html, pageUrl) {
         // Keep static assets on S3 while related app windows share the shell's origin.
         var prepared = String(html).replace(/<base\b[^>]*>/i, '<base href="' + sourceRoot + '">');
+        // The source's ad loader injects third-party overlays inside the page.
+        prepared = prepared.replace(/<script\b[^>]*\bsrc\s*=\s*(["'])[^"']*\bcore\/ads\.js(?:\?[^"']*)?\1[^>]*>\s*<\/script>/gi, '');
         prepared = prepared.replace('(function () {', '(function () { var location = new URL("' + pageUrl + '");');
         if (pageUrl === source) {
           // The game resolver needs a real URL base; about:srcdoc has a null origin.
